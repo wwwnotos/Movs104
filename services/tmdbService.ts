@@ -1,4 +1,3 @@
-
 import { MediaItem, MediaType, CastMember } from '../types';
 
 const API_KEY = 'a802f089da38a5e3671c9563615bfdee';
@@ -50,10 +49,10 @@ const mapResultToMediaItem = (item: any): MediaItem => {
   };
 };
 
-// "Latest Movies" - Uses Now Playing
+// "Latest Movies" - Uses Popular to provide variety (Different from New Releases)
 export const fetchNowPlaying = async (page: number = 1): Promise<MediaItem[]> => {
   try {
-    const response = await fetch(`${BASE_URL}/movie/now_playing?api_key=${API_KEY}&language=en-US&page=${page}`);
+    const response = await fetch(`${BASE_URL}/movie/popular?api_key=${API_KEY}&language=en-US&page=${page}`);
     const data = await response.json();
     return data.results.map(mapResultToMediaItem);
   } catch (error) {
@@ -67,20 +66,33 @@ export const fetchLatestTV = async (page: number = 1): Promise<MediaItem[]> => {
   try {
     const response = await fetch(`${BASE_URL}/tv/on_the_air?api_key=${API_KEY}&language=en-US&page=${page}`);
     const data = await response.json();
-    return data.results.map(mapResultToMediaItem);
+    return data.results.map((item: any) => ({
+      ...mapResultToMediaItem(item),
+      badge: 'New Episode' // Force badge for On The Air
+    }));
   } catch (error) {
     console.error("Error fetching latest TV:", error);
     return [];
   }
 };
 
-// "Latest Releases" - Combines Movies and TV, sorted by date
+// "Latest Releases" - Combines Movies (Now Playing) and TV (Airing Today), sorted by date
 export const fetchNewReleases = async (page: number = 1): Promise<MediaItem[]> => {
   try {
-    const [movies, tv] = await Promise.all([
-      fetchNowPlaying(page),
-      fetchLatestTV(page)
+    // Explicitly fetching Now Playing for Movies here to differ from the "Latest Movies" section
+    const [moviesResponse, tvResponse] = await Promise.all([
+      fetch(`${BASE_URL}/movie/now_playing?api_key=${API_KEY}&language=en-US&page=${page}`),
+      fetch(`${BASE_URL}/tv/airing_today?api_key=${API_KEY}&language=en-US&page=${page}`)
     ]);
+
+    const moviesData = await moviesResponse.json();
+    const tvData = await tvResponse.json();
+    
+    const movies = moviesData.results.map(mapResultToMediaItem);
+    const tv = tvData.results.map((item: any) => ({
+      ...mapResultToMediaItem(item),
+      badge: 'New Episode'
+    }));
     
     // Combine and sort by release date descending (newest first)
     const combined = [...movies, ...tv].sort((a, b) => {
@@ -100,7 +112,10 @@ export const fetchTrending = async (page: number = 1): Promise<MediaItem[]> => {
   try {
     const response = await fetch(`${BASE_URL}/trending/all/week?api_key=${API_KEY}&page=${page}`);
     const data = await response.json();
-    return data.results.map(mapResultToMediaItem);
+    return data.results.map((item: any) => ({
+      ...mapResultToMediaItem(item),
+      isTrending: true
+    }));
   } catch (error) {
     console.error("Error fetching trending:", error);
     return [];
