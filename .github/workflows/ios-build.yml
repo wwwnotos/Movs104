@@ -18,45 +18,57 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: |
+          npm install
+          # تثبيت أدوات Capacitor الضرورية
+          npm install @capacitor/core @capacitor/cli @capacitor/ios
 
       - name: Build Web App
         run: npm run build
 
       - name: Setup Capacitor
         run: |
-          npx cap add ios
+          # تهيئة المشروع كـ تطبيق موبايل (إذا لم يكن مهيأ)
+          # استبدل 'dist' باسم مجلد البناء لديك إذا كان مختلفاً (مثل build)
+          npx cap init Movos com.movos.app --web-dir dist || true 
+          # إضافة منصة iOS
+          npx cap add ios || true
+          # نسخ ملفات الويب إلى مجلد iOS
           npx cap sync ios
 
-      # NOTE: To actually sign the IPA for TestFlight or Device installation,
-      # you must set up Apple Certificate and Provisioning Profile secrets in GitHub.
-      # This step builds an unsigned archive for demonstration/simulator purposes.
-      
+      # بناء أرشيف التطبيق (بدون توقيع)
       - name: Build iOS Archive (Unsigned)
         run: |
           cd ios/App
+          # تنظيف البناء السابق
+          xcodebuild clean -workspace App.xcworkspace -scheme App
+          # إنشاء الأرشيف
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -sdk iphoneos \
             -configuration Release \
             -archivePath $PWD/build/App.xcarchive \
-            clean archive \
+            archive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
+      # استخراج ملف IPA من الأرشيف
       - name: Export IPA (Unsigned Payload)
         run: |
           cd ios/App
           mkdir -p build/Payload
+          # نسخ التطبيق إلى مجلد Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
+          # ضغط المجلد لإنشاء IPA
           cd build
           zip -r App.ipa Payload
 
+      # رفع الملف النهائي لتقوم بتحميله
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
