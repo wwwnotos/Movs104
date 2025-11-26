@@ -1,7 +1,7 @@
 import { MediaItem } from './types';
 
-// App Logo - You can replace this URL with your uploaded icon URL
-export const APP_LOGO = "https://cdn-icons-png.flaticon.com/512/2503/2503508.png"; // Placeholder high-quality play icon
+// App Logo
+export const APP_LOGO = "https://cdn-icons-png.flaticon.com/512/2503/2503508.png";
 
 // Using high quality placeholder images that resemble the aesthetic
 export const MOCK_MEDIA: MediaItem[] = [
