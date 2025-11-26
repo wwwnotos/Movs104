@@ -19,34 +19,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+          # تم حذف خاصية cache: 'npm' التي كانت تسبب فشل العملية
 
-      # تم التعديل هنا: استخدام npm install بدلاً من npm ci
+      # 1. تثبيت الاعتماديات (باستخدام npm install)
       - name: Install Dependencies
         run: |
-          npm install # أمر التثبيت المناسب في حال عدم وجود ملف القفل
+          npm install 
           # تثبيت أدوات Capacitor الضرورية
           npm install @capacitor/core @capacitor/cli @capacitor/ios
 
+      # 2. بناء الويب
       - name: Build Web App
         run: npm run build
 
+      # 3. إعداد بيئة الموبايل (Capacitor)
       - name: Setup Capacitor
         run: |
-          # تهيئة المشروع كـ تطبيق موبايل (إذا لم يكن مهيأ)
           npx cap init Movos com.movos.app --web-dir dist || true 
-          # إضافة منصة iOS
           npx cap add ios || true
-          # نسخ ملفات الويب إلى مجلد iOS
           npx cap sync ios
 
-      # بناء أرشيف التطبيق (بدون توقيع)
+      # 4. بناء الأرشيف (بدون توقيع)
       - name: Build iOS Archive (Unsigned)
         run: |
           cd ios/App
-          # تنظيف البناء السابق
           xcodebuild clean -workspace App.xcworkspace -scheme App
-          # إنشاء الأرشيف
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -sdk iphoneos \
@@ -57,18 +54,16 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      # استخراج ملف IPA من الأرشيف
+      # 5. استخراج ملف IPA
       - name: Export IPA (Unsigned Payload)
         run: |
           cd ios/App
           mkdir -p build/Payload
-          # نسخ التطبيق إلى مجلد Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
-          # ضغط المجلد لإنشاء IPA
           cd build
           zip -r App.ipa Payload
 
-      # رفع الملف النهائي لتقوم بتحميله
+      # 6. رفع الملف النهائي لتقوم بتحميله
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
