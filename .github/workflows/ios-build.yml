@@ -15,34 +15,32 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      # تم إزالة خاصية cache التي كانت تسبب خطأ ملف القفل
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18' 
+          node-version: '18'
+          # تم حذف خاصية cache: 'npm' التي كانت تسبب فشل العملية
 
-      # تم التعديل إلى npm install لحل مشكلة ملف القفل المفقود
+      # 1. تثبيت الاعتماديات (باستخدام npm install)
       - name: Install Dependencies
         run: |
           npm install 
           # تثبيت أدوات Capacitor الضرورية
           npm install @capacitor/core @capacitor/cli @capacitor/ios
-
-      # الآن هذا الأمر سينفذ 'vite build' فقط (للتخطي خطأ TypeScript)
+      # 2. بناء الويب
       - name: Build Web App
         run: npm run build
 
-      - name: Setup Capacitor (Add iOS platform files)
+      # 3. إعداد بيئة الموبايل (Capacitor)
+      - name: Setup Capacitor
         run: |
-          npx cap init Movos com.movos.app --web-dir dist || true
+          npx cap init Movos com.movos.app --web-dir dist || true 
           npx cap add ios || true
           npx cap sync ios
-
-      # بناء أرشيف التطبيق (بدون توقيع)
+      # 4. بناء الأرشيف (بدون توقيع)
       - name: Build iOS Archive (Unsigned)
         run: |
-          cd ios
-          # تنظيف البناء السابق وإنشاء الأرشيف
+          cd ios/App
           xcodebuild clean -workspace App.xcworkspace -scheme App
           xcodebuild -workspace App.xcworkspace \
             -scheme App \
@@ -53,20 +51,17 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
-
-      # استخراج ملف IPA من الأرشيف
+      # 5. استخراج ملف IPA
       - name: Export IPA (Unsigned Payload)
         run: |
-          cd ios
+          cd ios/App
           mkdir -p build/Payload
-          # نسخ التطبيق إلى مجلد Payload
           cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
           cd build
-          zip -r Movos.ipa Payload
-
-      # رفع الملف النهائي لتقوم بتحميله
+          zip -r App.ipa Payload
+      # 6. رفع الملف النهائي لتقوم بتحميله
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: movos-ios-app
-          path: ios/build/Movos.ipa
+          path: ios/App/build/App.ipa
