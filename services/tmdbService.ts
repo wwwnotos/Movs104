@@ -49,10 +49,10 @@ const mapResultToMediaItem = (item: any): MediaItem => {
   };
 };
 
-// "Latest Movies" - Uses Popular to provide variety (Different from New Releases)
+// "Latest Movies" - Uses Now Playing
 export const fetchNowPlaying = async (page: number = 1): Promise<MediaItem[]> => {
   try {
-    const response = await fetch(`${BASE_URL}/movie/popular?api_key=${API_KEY}&language=en-US&page=${page}`);
+    const response = await fetch(`${BASE_URL}/movie/now_playing?api_key=${API_KEY}&language=en-US&page=${page}`);
     const data = await response.json();
     return data.results.map(mapResultToMediaItem);
   } catch (error) {
@@ -66,33 +66,20 @@ export const fetchLatestTV = async (page: number = 1): Promise<MediaItem[]> => {
   try {
     const response = await fetch(`${BASE_URL}/tv/on_the_air?api_key=${API_KEY}&language=en-US&page=${page}`);
     const data = await response.json();
-    return data.results.map((item: any) => ({
-      ...mapResultToMediaItem(item),
-      badge: 'New Episode' // Force badge for On The Air
-    }));
+    return data.results.map(mapResultToMediaItem);
   } catch (error) {
     console.error("Error fetching latest TV:", error);
     return [];
   }
 };
 
-// "Latest Releases" - Combines Movies (Now Playing) and TV (Airing Today), sorted by date
+// "Latest Releases" - Combines Movies and TV, sorted by date
 export const fetchNewReleases = async (page: number = 1): Promise<MediaItem[]> => {
   try {
-    // Explicitly fetching Now Playing for Movies here to differ from the "Latest Movies" section
-    const [moviesResponse, tvResponse] = await Promise.all([
-      fetch(`${BASE_URL}/movie/now_playing?api_key=${API_KEY}&language=en-US&page=${page}`),
-      fetch(`${BASE_URL}/tv/airing_today?api_key=${API_KEY}&language=en-US&page=${page}`)
+    const [movies, tv] = await Promise.all([
+      fetchNowPlaying(page),
+      fetchLatestTV(page)
     ]);
-
-    const moviesData = await moviesResponse.json();
-    const tvData = await tvResponse.json();
-    
-    const movies = moviesData.results.map(mapResultToMediaItem);
-    const tv = tvData.results.map((item: any) => ({
-      ...mapResultToMediaItem(item),
-      badge: 'New Episode'
-    }));
     
     // Combine and sort by release date descending (newest first)
     const combined = [...movies, ...tv].sort((a, b) => {
@@ -112,10 +99,7 @@ export const fetchTrending = async (page: number = 1): Promise<MediaItem[]> => {
   try {
     const response = await fetch(`${BASE_URL}/trending/all/week?api_key=${API_KEY}&page=${page}`);
     const data = await response.json();
-    return data.results.map((item: any) => ({
-      ...mapResultToMediaItem(item),
-      isTrending: true
-    }));
+    return data.results.map(mapResultToMediaItem);
   } catch (error) {
     console.error("Error fetching trending:", error);
     return [];
@@ -178,12 +162,24 @@ export const fetchMediaByGenre = async (genreId: number, type: MediaType = 'movi
   }
 };
 
-export const fetchMediaDetails = async (id: string, type: MediaType): Promise<MediaItem | null> => {
+export const fetchMediaDetails = async (id: string, type: MediaType, language: 'en' | 'ar' = 'en'): Promise<MediaItem | null> => {
   try {
-    const response = await fetch(`${BASE_URL}/${type}/${id}?api_key=${API_KEY}&append_to_response=credits,videos,images`);
+    // 1. ALWAYS Fetch in English first to ensure Titles, Original Titles, and Cast are in English.
+    // We include 'translations' in the response to find the Arabic overview later.
+    const response = await fetch(`${BASE_URL}/${type}/${id}?api_key=${API_KEY}&language=en-US&append_to_response=credits,videos,images,translations`);
     const data = await response.json();
 
     const baseItem = mapResultToMediaItem(data);
+
+    // 2. Hybrid Localization Logic
+    // If user language is Arabic, check the translations for an Arabic Overview
+    if (language === 'ar' && data.translations && data.translations.translations) {
+        const arabicTranslation = data.translations.translations.find((t: any) => t.iso_639_1 === 'ar');
+        if (arabicTranslation && arabicTranslation.data && arabicTranslation.data.overview) {
+            // Replace ONLY the description with Arabic
+            baseItem.description = arabicTranslation.data.overview;
+        }
+    }
 
     // Enrich with details
     const director = data.credits?.crew?.find((p: any) => p.job === 'Director')?.name;
