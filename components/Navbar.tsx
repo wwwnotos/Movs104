@@ -5,32 +5,28 @@ import { ViewState } from '../types';
 interface NavbarProps {
   activeTab: ViewState;
   onTabChange: (tab: ViewState) => void;
-  savedCount?: number;
   isVisible?: boolean;
+  language: 'en' | 'ar';
 }
 
-const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, isVisible = true }) => {
+const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, isVisible = true, language }) => {
+  
+  const labels = {
+    en: { home: 'Home', search: 'Search', saved: 'Saved', profile: 'Profile' },
+    ar: { home: 'الرئيسية', search: 'البحث', saved: 'محفوظاتي', profile: 'ملفي' }
+  };
+
   const navItems = [
-    { id: 'home', icon: Compass, label: 'Home' },
-    { id: 'search', icon: Search, label: 'Search' },
-    { id: 'saved', icon: Bookmark, label: 'Saved' },
-    { id: 'profile', icon: UserCircle, label: 'Profile' },
+    { id: 'home', icon: Compass, label: labels[language].home },
+    { id: 'search', icon: Search, label: labels[language].search },
+    { id: 'saved', icon: Bookmark, label: labels[language].saved },
+    { id: 'profile', icon: UserCircle, label: labels[language].profile },
   ];
 
-  // Map 'search' index to the second position (index 1)
-  // This ensures the glass pill stays on the Search icon even if we are in 'discover' mode
-  const activeIndex = useMemo(() => {
-    // If activeTab is 'home', index 0
-    if (activeTab === 'home') return 0;
-    // If activeTab is 'search' OR 'discover' (categories), index 1
-    if (activeTab === 'search') return 1;
-    // If activeTab is 'saved', index 2
-    if (activeTab === 'saved') return 2;
-    // If activeTab is 'profile', index 3
-    if (activeTab === 'profile') return 3;
-    
-    return 0; 
-  }, [activeTab]);
+  const activeIndex = useMemo(() => 
+    navItems.findIndex(item => item.id === activeTab), 
+    [activeTab]
+  );
 
   return (
     <div 
@@ -88,5 +84,4 @@ const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, isVisible = tru
   );
 };
 
-// Optimization: Prevent re-renders on every scroll event
 export default React.memo(Navbar);

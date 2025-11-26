@@ -7,9 +7,20 @@ interface MediaCardProps {
   onClick: (item: MediaItem) => void;
   variant?: 'poster' | 'featured' | 'landscape' | 'list';
   className?: string;
+  language?: 'en' | 'ar';
 }
 
-const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster', className = '' }) => {
+const GENRE_MAP: Record<string, string> = {
+  "Action": "أكشن", "Adventure": "مغامرة", "Animation": "رسوم متحركة", "Comedy": "كوميديا",
+  "Crime": "جريمة", "Documentary": "وثائقي", "Drama": "دراما", "Family": "عائلي",
+  "Fantasy": "خيال", "History": "تاريخ", "Horror": "رعب", "Music": "موسيقى",
+  "Mystery": "غموض", "Romance": "رومانسية", "Sci-Fi": "خيال علمي", "TV Movie": "فيلم تلفزيوني",
+  "Thriller": "إثارة", "War": "حرب", "Western": "ويسترن", "Action & Adventure": "أكشن ومغامرة",
+  "Sci-Fi & Fantasy": "خيال علمي وفانتازيا", "Kids": "أطفال", "News": "أخبار", "Reality": "واقع",
+  "War & Politics": "حرب وسياسة", "Soap": "مسلسلات طويلة", "Talk": "برامج حوارية"
+};
+
+const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster', className = '', language = 'en' }) => {
   
   const [imgSrc, setImgSrc] = useState(variant === 'landscape' ? item.backdropUrl : item.posterUrl);
 
@@ -23,10 +34,16 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
 
   // Determine Badge (New Release / New Episode)
   const badge = useMemo(() => {
-    // 1. Priority: Explicit badge from Service (e.g., On The Air)
-    if (item.badge) return item.badge;
+    // 1. Prioritize explicitly assigned badges from service
+    if (item.badge) {
+        if (language === 'ar') {
+            if (item.badge === 'New Episode') return 'حلقة جديدة';
+            if (item.badge === 'New Release') return 'إصدار جديد';
+        }
+        return item.badge;
+    }
 
-    // 2. Fallback: Calculate based on date
+    // 2. Fallback to Date Calculation
     if (!item.releaseDate) return null;
     const release = new Date(item.releaseDate);
     const now = new Date();
@@ -35,11 +52,22 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
     
     // Show badge if released within the last 45 days
     if (diffDays >= 0 && diffDays <= 45) {
-        return item.type === 'movie' ? 'New Release' : 'New Episode';
+        if (item.type === 'movie') return language === 'ar' ? 'إصدار جديد' : 'New Release';
+        return language === 'ar' ? 'حلقة جديدة' : 'New Episode';
     }
     return null;
-  }, [item.releaseDate, item.type, item.badge]);
+  }, [item.releaseDate, item.type, item.badge, language]);
   
+  // Localize Genre
+  const displayGenre = useMemo(() => {
+      if (!item.genre || item.genre.length === 0) return '';
+      const mainGenre = item.genre[0];
+      if (language === 'ar' && GENRE_MAP[mainGenre]) {
+          return GENRE_MAP[mainGenre];
+      }
+      return mainGenre;
+  }, [item.genre, language]);
+
   // Featured Card (Smooth edges, realistic shadow, white bottom container)
   if (variant === 'featured') {
     return (
@@ -71,7 +99,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
              <h3 className="text-base font-bold text-black dark:text-white leading-tight mb-1.5 truncate">{item.title}</h3>
              
              <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{item.year} • {item.genre[0]}</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{item.year} • {displayGenre}</p>
                 
                 {/* Rating Badge */}
                 <div className="flex items-center gap-1 bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 rounded-full">
@@ -103,7 +131,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
               />
               {badge && (
                 <div className="absolute top-0 left-0 w-full bg-[#007AFF]/90 text-white text-[8px] font-bold text-center py-0.5">
-                   NEW
+                   {language === 'ar' ? 'جديد' : 'NEW'}
                 </div>
               )}
            </div>
@@ -114,7 +142,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
               <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                  <span>{item.year}</span>
                  <span className="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
-                 <span>{item.genre[0]}</span>
+                 <span>{displayGenre}</span>
               </div>
               
               <div className="flex items-center gap-1 mt-1">
@@ -123,7 +151,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
                   {item.appRating && (
                     <>
                        <span className="text-gray-300 dark:text-gray-600 mx-1">|</span>
-                       <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{item.appRating} User</span>
+                       <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{item.appRating} {language === 'ar' ? 'مستخدم' : 'User'}</span>
                     </>
                   )}
               </div>
@@ -168,5 +196,4 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
   );
 };
 
-// Optimization: Prevent unnecessary re-renders of list items
 export default React.memo(MediaCard);

@@ -8,9 +8,10 @@ interface DetailModalProps {
   onClose: () => void;
   onToggleSave: (item: MediaItem) => void;
   isSaved: boolean;
+  language: 'en' | 'ar';
 }
 
-const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onToggleSave, isSaved }) => {
+const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onToggleSave, isSaved, language }) => {
   const [showTrailer, setShowTrailer] = useState(false);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -26,6 +27,38 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onTogg
   }, [item]);
 
   if (!isOpen || !item) return null;
+
+  // Translations
+  const t = {
+    en: {
+        rateTitle: 'Rate this title',
+        rateDesc: `What did you think of ${item.title}?`,
+        cancel: 'Cancel',
+        submit: 'Submit',
+        watchYoutube: 'Watch on YouTube',
+        imageNA: 'Image not available',
+        watchTrailer: 'Watch Trailer',
+        save: 'Save',
+        saved: 'Saved',
+        plot: 'Plot Summary',
+        cast: 'Top Cast'
+    },
+    ar: {
+        rateTitle: 'قيّم هذا العمل',
+        rateDesc: `ما رأيك في ${item.title}؟`,
+        cancel: 'إلغاء',
+        submit: 'إرسال',
+        watchYoutube: 'مشاهدة على يوتيوب',
+        imageNA: 'الصورة غير متوفرة',
+        watchTrailer: 'تشغيل الإعلان',
+        save: 'حفظ',
+        saved: 'محفوظ',
+        plot: 'ملخص القصة',
+        cast: 'أبرز الممثلين'
+    }
+  };
+
+  const text = t[language];
 
   // Function to lock orientation to landscape and enter fullscreen
   const handleEnterFullscreen = async () => {
@@ -128,11 +161,11 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onTogg
     <>
       {/* RATING MODAL OVERLAY */}
       {showRatingModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200" dir="ltr">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowRatingModal(false)} />
             <div className="relative bg-white dark:bg-[#1C1C1E] w-full max-w-sm rounded-3xl p-6 shadow-2xl scale-100 animate-spring-up border border-white/10 text-center">
-                <h3 className="text-2xl font-bold text-black dark:text-white mb-2">Rate this title</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">What did you think of {item.title}?</p>
+                <h3 className="text-2xl font-bold text-black dark:text-white mb-2">{text.rateTitle}</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">{text.rateDesc}</p>
                 
                 <div className="flex justify-center gap-2 mb-8">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -155,13 +188,13 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onTogg
                       onClick={() => setShowRatingModal(false)}
                       className="flex-1 py-3.5 rounded-2xl font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                   >
-                      Cancel
+                      {text.cancel}
                   </button>
                   <button 
                       onClick={handleSubmitRating}
                       className="flex-1 py-3.5 rounded-2xl bg-[#007AFF] text-white font-bold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/25"
                   >
-                      Submit
+                      {text.submit}
                   </button>
                 </div>
             </div>
@@ -173,6 +206,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onTogg
         <div 
             ref={playerContainerRef}
             className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center animate-in fade-in duration-300"
+            dir="ltr"
         >
              
              {/* Close Button - Absolute to remain visible in fullscreen, respects safe area */}
@@ -212,12 +246,12 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onTogg
                 className="absolute bottom-10 flex items-center gap-2 text-white bg-white/10 hover:bg-white/20 px-6 py-3 rounded-full backdrop-blur-md transition-colors z-40 font-medium pb-safe"
              >
                 <ExternalLink size={18} />
-                <span>Watch on YouTube</span>
+                <span>{text.watchYoutube}</span>
              </a>
         </div>
       )}
 
-      <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="fixed inset-0 z-50 flex items-end justify-center" dir="ltr">
         {/* Backdrop */}
         <div 
           className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-500 animate-in fade-in" 
@@ -241,7 +275,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onTogg
             ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
                     <ImageOff size={48} className="mb-2 opacity-50" />
-                    <span className="text-sm font-medium">Image not available</span>
+                    <span className="text-sm font-medium">{text.imageNA}</span>
                 </div>
             )}
 
@@ -318,7 +352,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onTogg
                       className="flex-1 bg-[#007AFF] hover:bg-blue-600 active:scale-[0.98] text-white font-bold text-lg py-5 rounded-3xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-blue-500/30"
                   >
                       <Play fill="currentColor" size={20} />
-                      Watch Trailer
+                      {text.watchTrailer}
                   </button>
                   
                   {/* Secondary Button */}
@@ -331,14 +365,14 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onTogg
                       }`}
                   >
                       <Bookmark fill={isSaved ? "currentColor" : "none"} size={22} />
-                      {isSaved ? 'Saved' : 'Save'}
+                      {isSaved ? text.saved : text.save}
                   </button>
               </div>
 
               {/* Plot */}
               <div className="space-y-10 pb-safe">
                   <section>
-                      <h3 className="text-2xl font-bold text-black dark:text-white mb-4">Plot Summary</h3>
+                      <h3 className="text-2xl font-bold text-black dark:text-white mb-4">{text.plot}</h3>
                       <p className="text-gray-500 dark:text-gray-400 leading-8 text-lg font-normal">
                           {item.description}
                       </p>
@@ -347,7 +381,7 @@ const DetailModal: React.FC<DetailModalProps> = ({ item, isOpen, onClose, onTogg
                   {/* Cast */}
                   {item.cast && item.cast.length > 0 && (
                       <section>
-                          <h3 className="text-2xl font-bold text-black dark:text-white mb-5">Top Cast</h3>
+                          <h3 className="text-2xl font-bold text-black dark:text-white mb-5">{text.cast}</h3>
                           <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar -mx-2 px-2">
                               {item.cast.map((actor, idx) => (
                                   <div key={idx} className="flex flex-col items-center gap-3 min-w-[84px]">
