@@ -17,10 +17,20 @@ const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, isVisible = tru
     { id: 'profile', icon: UserCircle, label: 'Profile' },
   ];
 
-  const activeIndex = useMemo(() => 
-    navItems.findIndex(item => item.id === activeTab), 
-    [activeTab]
-  );
+  // Map 'search' index to the second position (index 1)
+  // This ensures the glass pill stays on the Search icon even if we are in 'discover' mode
+  const activeIndex = useMemo(() => {
+    // If activeTab is 'home', index 0
+    if (activeTab === 'home') return 0;
+    // If activeTab is 'search' OR 'discover' (categories), index 1
+    if (activeTab === 'search') return 1;
+    // If activeTab is 'saved', index 2
+    if (activeTab === 'saved') return 2;
+    // If activeTab is 'profile', index 3
+    if (activeTab === 'profile') return 3;
+    
+    return 0; 
+  }, [activeTab]);
 
   return (
     <div 
@@ -78,4 +88,5 @@ const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, isVisible = tru
   );
 };
 
+// Optimization: Prevent re-renders on every scroll event
 export default React.memo(Navbar);

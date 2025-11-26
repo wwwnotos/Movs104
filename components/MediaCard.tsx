@@ -23,6 +23,10 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
 
   // Determine Badge (New Release / New Episode)
   const badge = useMemo(() => {
+    // 1. Priority: Explicit badge from Service (e.g., On The Air)
+    if (item.badge) return item.badge;
+
+    // 2. Fallback: Calculate based on date
     if (!item.releaseDate) return null;
     const release = new Date(item.releaseDate);
     const now = new Date();
@@ -34,7 +38,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
         return item.type === 'movie' ? 'New Release' : 'New Episode';
     }
     return null;
-  }, [item.releaseDate, item.type]);
+  }, [item.releaseDate, item.type, item.badge]);
   
   // Featured Card (Smooth edges, realistic shadow, white bottom container)
   if (variant === 'featured') {
@@ -164,4 +168,5 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onClick, variant = 'poster'
   );
 };
 
+// Optimization: Prevent unnecessary re-renders of list items
 export default React.memo(MediaCard);
