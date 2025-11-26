@@ -21,9 +21,10 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
+      # تم التعديل هنا: استخدام npm install بدلاً من npm ci
       - name: Install Dependencies
         run: |
-          npm install
+          npm install # أمر التثبيت المناسب في حال عدم وجود ملف القفل
           # تثبيت أدوات Capacitor الضرورية
           npm install @capacitor/core @capacitor/cli @capacitor/ios
 
@@ -33,7 +34,6 @@ jobs:
       - name: Setup Capacitor
         run: |
           # تهيئة المشروع كـ تطبيق موبايل (إذا لم يكن مهيأ)
-          # استبدل 'dist' باسم مجلد البناء لديك إذا كان مختلفاً (مثل build)
           npx cap init Movos com.movos.app --web-dir dist || true 
           # إضافة منصة iOS
           npx cap add ios || true
