@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import MediaCard from './components/MediaCard';
@@ -126,14 +125,25 @@ const App: React.FC = () => {
     return () => clearTimeout(splashTimer);
   }, []);
 
+  const showNotificationFunc = useCallback((message: string, type: 'success' | 'info' = 'success') => {
+    if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+    }
+    setNotification({ show: true, message, type });
+    notificationTimeoutRef.current = setTimeout(() => {
+        setNotification(prev => ({ ...prev, show: false }));
+    }, 3000);
+  }, []);
+
+  // Optimized Home Data Loading using Promise.allSettled to fail gracefully
   const loadHomeData = async () => {
       setIsLoadingHome(true);
       try {
         const results = await Promise.allSettled([
           fetchTrending(),
-          fetchNewReleases(), // Latest Mixed
-          fetchNowPlaying(),  // Latest Movies
-          fetchLatestTV(),    // Latest TV
+          fetchNewReleases(), // Latest Mixed (Now Playing Movies + Airing Today TV)
+          fetchNowPlaying(),  // Latest Movies (Actually fetching Popular to avoid duplicates with releases)
+          fetchLatestTV(),    // Latest TV (On The Air)
           fetchTopRated()
         ]);
 
@@ -191,69 +201,31 @@ const App: React.FC = () => {
       }
   };
 
-  const showNotificationFunc = useCallback((message: string, type: 'success' | 'info' = 'success') => {
-    if (notificationTimeoutRef.current) {
-        clearTimeout(notificationTimeoutRef.current);
-    }
-    setNotification({ show: true, message, type });
-    notificationTimeoutRef.current = setTimeout(() => {
-        setNotification(prev => ({ ...prev, show: false }));
-    }, 3000);
-  }, []);
-
   // Scroll Listener for Load More Button (See All, Genre, & Search)
   useEffect(() => {
-    if (seeAllState) {
-       const handleScroll = () => {
-           const scrollTop = window.scrollY;
-           const windowHeight = window.innerHeight;
-           const docHeight = document.documentElement.scrollHeight;
-           if (scrollTop + windowHeight >= docHeight - 300) {
-               setShowLoadMore(true);
-           } else {
-               setShowLoadMore(false);
-           }
-       };
-       window.addEventListener('scroll', handleScroll);
-       handleScroll();
-       return () => window.removeEventListener('scroll', handleScroll);
-    } 
-    else if (activeTab === 'search' && selectedGenre) {
-       const handleScrollGenre = () => {
-           const scrollTop = window.scrollY;
-           const windowHeight = window.innerHeight;
-           const docHeight = document.documentElement.scrollHeight;
-           if (scrollTop + windowHeight >= docHeight - 300) {
-               setShowGenreLoadMore(true);
-           } else {
-               setShowGenreLoadMore(false);
-           }
-       };
-       window.addEventListener('scroll', handleScrollGenre);
-       handleScrollGenre();
-       return () => window.removeEventListener('scroll', handleScrollGenre);
-    }
-    else if (activeTab === 'search' && !selectedGenre && searchResults.length > 0) {
-       const handleScrollSearch = () => {
-           const scrollTop = window.scrollY;
-           const windowHeight = window.innerHeight;
-           const docHeight = document.documentElement.scrollHeight;
-           if (scrollTop + windowHeight >= docHeight - 300) {
-               setShowSearchLoadMore(true);
-           } else {
-               setShowSearchLoadMore(false);
-           }
-       };
-       window.addEventListener('scroll', handleScrollSearch);
-       handleScrollSearch();
-       return () => window.removeEventListener('scroll', handleScrollSearch);
-    }
-    else {
-        setShowLoadMore(false);
-        setShowGenreLoadMore(false);
-        setShowSearchLoadMore(false);
-    }
-  }, [seeAllState, activeTab, selectedGenre, searchResults]);
+    const handleScroll = () => {
+        // Optimized check
+        if (!seeAllState && !selectedGenre && searchResults.length === 0) return;
+
+        const scrollTop = window.scrollY;
+        const windowHeight = window.innerHeight;
+        const docHeight = document.documentElement.scrollHeight;
+        
+        const shouldShow = scrollTop + windowHeight >= docHeight - 300;
+
+        if (seeAllState) {
+            setShowLoadMore(shouldShow);
+        } else if (activeTab === 'search' && selectedGenre) {
+            setShowGenreLoadMore(shouldShow);
+        } else if (activeTab === 'search' && searchResults.length > 0) {
+            setShowSearchLoadMore(shouldShow);
+        }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [seeAllState, activeTab, selectedGenre, searchResults.length]);
 
   // Debounce Search for Media Suggestions
   useEffect(() => {
@@ -422,7 +394,7 @@ const App: React.FC = () => {
       switch (seeAllState.source) {
         case 'trending': newItems = await fetchTrending(nextPage); break;
         case 'mixed_releases': newItems = await fetchNewReleases(nextPage); break;
-        case 'latest_movies': newItems = await fetchNowPlaying(nextPage); break;
+        case 'latest_movies': newItems = await fetchNowPlaying(nextPage); break; // Now fetches popular
         case 'latest_tv': newItems = await fetchLatestTV(nextPage); break;
         case 'top_rated': newItems = await fetchTopRated(nextPage); break;
       }
