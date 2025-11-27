@@ -1,46 +1,36 @@
-name: Build iOS App
+Run npm install 
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@google/genai@1.30.0',
+npm warn EBADENGINE   required: { node: '>=20.0.0' },
+npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
 
-on:
-  push:name: Build iOS App
+added 277 packages, and audited 278 packages in 17s
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+50 packages are looking for funding
+  run `npm fund` for details
 
-jobs:
-  build:
-    runs-on: macos-latest
+2 moderate severity vulnerabilities
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+To address all issues (including breaking changes), run:
+  npm audit fix --force
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+Run `npm audit` for details.
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@google/genai@1.30.0',
+npm warn EBADENGINE   required: { node: '>=20.0.0' },
+npm warn EBADENGINE   current: { node: 'v18.20.8', npm: '10.8.2' }
+npm warn EBADENGINE }
 
-      - name: Install dependencies
-        run: npm install
+added 1 package, and audited 279 packages in 787ms
 
-      - name: Build Web App
-        run: npm run build
+50 packages are looking for funding
+  run `npm fund` for details
 
-      - name: Install Capacitor
-        run: npm install @capacitor/core @capacitor/cli @capacitor/ios
+2 moderate severity vulnerabilities
 
-      - name: Initialize Capacitor
-        run: npx cap init MOVOS com.movos.app --web-dir=dist
+To address all issues (including breaking changes), run:
+  npm audit fix --force
 
-      - name: Add iOS Platform
-        run: npx cap add ios
-
-      - name: Sync Capacitor
-        run: npx cap sync
-
-      - name: Upload iOS Project Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-project
-          path: ios/
+Run `npm audit` for details.
